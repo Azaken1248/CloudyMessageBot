@@ -128,8 +128,8 @@ Once running, the server will expose:
 ---
 
 ## Connecting with the Portfolio
-The portfolio is configured to send requests to `http://localhost:5001/api/messages` by default.
+The portfolio is configured to use the hosted relay API at `http://cloudyrelayapi.azaken.com/api/messages` as its fallback.
 
 To customize this:
-- **Locally**: The local fallback is ready. No changes are required.
+- **Locally**: The default fallback matches the production environment.
 - **Production**: Configure the `actionUrl` field in the database (under `contactContent.form.actionUrl` in your CMS configuration) to point to your deployed Message Relay server endpoint (e.g., `https://your-relay-service.com/api/messages`).
