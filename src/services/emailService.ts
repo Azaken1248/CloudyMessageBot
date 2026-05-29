@@ -1,3 +1,4 @@
+import path from 'path';
 import nodemailer from 'nodemailer';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
@@ -253,12 +254,12 @@ class EmailService {
         attachments: [
           {
             filename: 'icon_bow.png',
-            path: '/home/azaken/Desktop/ProjectCloudy/Cloudy Web Icons/PNG/Web Icon/icon_bow.png',
+            path: path.join(process.cwd(), '../Cloudy Web Icons/PNG/Web Icon/icon_bow.png'),
             cid: 'icon_bow',
           },
           {
             filename: 'asset_candyjar.png',
-            path: '/home/azaken/Desktop/ProjectCloudy/Cloudy Web Icons/PNG/Asset - extra/asset_candyjar.png',
+            path: path.join(process.cwd(), '../Cloudy Web Icons/PNG/Asset - extra/asset_candyjar.png'),
             cid: 'asset_candyjar',
           },
         ],
