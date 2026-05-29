@@ -74,7 +74,7 @@ class DiscordService {
     logger.info('DISCORD', `Routing message from "${data.name}" to Discord...`);
 
     const bowAttachment = new AttachmentBuilder(
-      path.join(process.cwd(), '../Cloudy Web Icons/PNG/Web Icon/icon_bow.png'),
+      path.join(process.cwd(), 'assets/icon_bow.png'),
       { name: 'icon_bow.png' }
     );
 

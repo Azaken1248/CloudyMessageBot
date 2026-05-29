@@ -254,12 +254,12 @@ class EmailService {
         attachments: [
           {
             filename: 'icon_bow.png',
-            path: path.join(process.cwd(), '../Cloudy Web Icons/PNG/Web Icon/icon_bow.png'),
+            path: path.join(process.cwd(), 'assets/icon_bow.png'),
             cid: 'icon_bow',
           },
           {
             filename: 'asset_candyjar.png',
-            path: path.join(process.cwd(), '../Cloudy Web Icons/PNG/Asset - extra/asset_candyjar.png'),
+            path: path.join(process.cwd(), 'assets/asset_candyjar.png'),
             cid: 'asset_candyjar',
           },
         ],
