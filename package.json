@@ -7,7 +7,10 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/src/server.js"
+    "start": "node dist/src/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src tests"
   },
   "keywords": [],
   "author": "",
@@ -17,14 +20,21 @@
     "discord.js": "^14.18.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
-    "nodemailer": "^6.10.0"
+    "nodemailer": "^9.0.6"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.2",
     "@types/node": "^20.12.7",
-    "@types/nodemailer": "^6.4.17",
+    "@types/nodemailer": "^8.0.1",
+    "@types/supertest": "^7.2.1",
+    "eslint": "^10.9.1",
+    "globals": "^17.11.0",
+    "supertest": "^7.2.2",
     "tsx": "^4.19.0",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.68.0",
+    "vitest": "^4.1.11"
   }
 }

@@ -2,6 +2,7 @@ import path from 'path';
 import nodemailer from 'nodemailer';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
+import { escapeHtml, isLikelyEmail, mailtoHref } from '../utils/sanitize.js';
 import type { RelayMessage } from '../types/index.js';
 
 class EmailService {
@@ -61,6 +62,19 @@ class EmailService {
     logger.debug('EMAIL', `SMTP settings: host=${config.smtp.host}, port=${config.smtp.port}, sender=${config.smtp.from}, recipient=${config.artistEmail}`);
 
     try {
+      // Escaped copies for interpolation; the raw values are never placed in markup.
+      const safe = {
+        name: escapeHtml(data.name),
+        email: escapeHtml(data.email),
+        discordId: escapeHtml(data.discordId),
+        preferredContact: escapeHtml(data.preferredContact),
+        subject: escapeHtml(data.subject),
+        message: escapeHtml(data.message),
+      };
+      // Only a well-formed address becomes a clickable link or a Reply-To.
+      const emailIsLinkable = isLikelyEmail(data.email);
+      const emailLink = emailIsLinkable ? mailtoHref(data.email) : '';
+
       const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -210,35 +224,35 @@ class EmailService {
                 <div class="meta-card">
                   <div class="meta-row">
                     <div class="label">From Client</div>
-                    <div class="value"><strong>${data.name}</strong></div>
+                    <div class="value"><strong>${safe.name}</strong></div>
                   </div>
                   <div class="meta-row">
                     <div class="label">Email Address</div>
-                    <div class="value">${data.email ? `<a href="mailto:${data.email}">${data.email}</a>` : '<em>Not provided</em>'}</div>
+                    <div class="value">${safe.email ? (emailIsLinkable ? `<a href="${emailLink}">${safe.email}</a>` : safe.email) : '<em>Not provided</em>'}</div>
                   </div>
                   <div class="meta-row">
                     <div class="label">Discord ID</div>
-                    <div class="value">${data.discordId ? `<strong>${data.discordId}</strong>` : '<em>Not provided</em>'}</div>
+                    <div class="value">${safe.discordId ? `<strong>${safe.discordId}</strong>` : '<em>Not provided</em>'}</div>
                   </div>
                   <div class="meta-row">
                     <div class="label">Preferred Contact Method</div>
-                    <div class="value" style="display: inline-block; background-color: #E0E7FF; color: #4F46E5; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-top: 4px;">${data.preferredContact}</div>
+                    <div class="value" style="display: inline-block; background-color: #E0E7FF; color: #4F46E5; padding: 4px 10px; border-radius: 12px; font-size: 13px; font-weight: 600; margin-top: 4px;">${safe.preferredContact}</div>
                   </div>
                   <div class="meta-row" style="margin-top: 12px; border-top: 1px solid rgba(175, 195, 235, 0.15); padding-top: 12px;">
                     <div class="label">Subject</div>
-                    <div class="value" style="font-weight: 600; color: #1E1B4B;">${data.subject || 'No Subject Specified'}</div>
+                    <div class="value" style="font-weight: 600; color: #1E1B4B;">${safe.subject || 'No Subject Specified'}</div>
                   </div>
                 </div>
                 
                 <div class="message-label">Inquiry Message</div>
-                <div class="message-card">${data.message}</div>
+                <div class="message-card">${safe.message}</div>
               </div>
               
               <div class="footer">
                 <img class="candy-icon" src="cid:asset_candyjar" alt="🍬" /><br>
                 <p>Sent via <strong>Cloudy Message Relay Service</strong>.</p>
-                ${data.email ? `<p>To reply to this message, you can reply directly to this email: <a href="mailto:${data.email}">${data.email}</a>.</p>` : ''}
-                ${data.discordId ? `<p>Alternatively, reach out on Discord at: <strong>${data.discordId}</strong>.</p>` : ''}
+                ${emailIsLinkable ? `<p>To reply to this message, you can reply directly to this email: <a href="${emailLink}">${safe.email}</a>.</p>` : ''}
+                ${safe.discordId ? `<p>Alternatively, reach out on Discord at: <strong>${safe.discordId}</strong>.</p>` : ''}
               </div>
             </div>
           </body>
@@ -249,7 +263,7 @@ class EmailService {
         from: config.smtp.from,
         to: config.artistEmail,
         subject: `🎀 [New Portfolio Message] ${data.subject || 'Inquiry'} from ${data.name}`,
-        ...(data.email ? { replyTo: data.email } : {}),
+        ...(emailIsLinkable ? { replyTo: data.email } : {}),
         html: htmlContent,
         attachments: [
           {

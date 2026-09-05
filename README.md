@@ -127,6 +127,61 @@ Once running, the server will expose:
 
 ---
 
+
+### Client-IP and rate limiting
+
+The relay rate-limits per client, and resolving *which* client is a security
+control: forwarding headers are believed only when the socket peer is a trusted
+proxy. Behind the Cloudflare Tunnel that is `cloudflared` on loopback, and
+`CF-Connecting-IP` is authoritative because Cloudflare's edge always overwrites
+it.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `TRUSTED_PROXIES` | `loopback` | Peers allowed to assert a client address. Accepts `loopback`, `private`, bare IPs, or CIDR blocks. |
+| `CLIENT_IP_SOURCE` | `auto` | `auto` prefers `CF-Connecting-IP` then `X-Forwarded-For`; also `cloudflare`, `xff`, `socket`. |
+| `TRUST_PROXY` | `1` | Proxy hops, for the `X-Forwarded-For` fallback only. |
+| `RATE_LIMIT_MAX` | `5` | Requests allowed per window. |
+| `RATE_LIMIT_WINDOW_MS` | `60000` | Window length in milliseconds. |
+
+This holds only while the origin is reachable *exclusively* through the tunnel.
+If the app is ever also exposed on a public port, `CF-Connecting-IP` becomes
+forgeable by anyone reaching that port directly.
+
+`src/utils/clientIp.ts` is mirrored byte-for-byte in the Admin API. Diff the two
+before changing either.
+
+### Message limits
+
+Each field is capped, so an oversized message is rejected with a 400 naming the
+field rather than being half-delivered (Discord rejects an embed description over
+4,096 characters):
+
+`name` 100 · `email` 254 · `discordId` 100 · `preferredContact` 40 ·
+`subject` 200 · `message` 3000
+
+## Testing
+
+```bash
+npm test          # vitest, 46 tests
+npm run lint
+```
+
+Credentials are blanked in `tests/setup.ts`, so both channels report themselves
+disabled and **no test can deliver to a real Discord channel or inbox**. Coverage
+spans the sanitisers, client-IP resolution across topologies (tunnel, direct
+exposure, same-host proxy, local), field limits, endpoint behaviour, and the rate
+limiter — including the header-rotation bypass it was originally vulnerable to.
+
+## Local development
+
+Use `../dev-env.sh` from the repository root to run MongoDB, the Admin API and
+this relay together on localhost with all outbound credentials blanked:
+
+```bash
+./dev-env.sh start    # also: stop | status | seed | logs
+```
+
 ## Connecting with the Portfolio
 The portfolio is configured to use the hosted relay API at `http://cloudyrelayapi.azaken.com/api/messages` as its fallback.
 

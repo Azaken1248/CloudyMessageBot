@@ -2,6 +2,7 @@ import path from 'path';
 import { Client, GatewayIntentBits, EmbedBuilder, TextChannel, AttachmentBuilder } from 'discord.js';
 import { config } from '../config.js';
 import { logger } from '../utils/logger.js';
+import { escapeMarkdown, truncate } from '../utils/sanitize.js';
 import type { RelayMessage } from '../types/index.js';
 
 class DiscordService {
@@ -78,21 +79,33 @@ class DiscordService {
       { name: 'icon_bow.png' }
     );
 
+    // Inside a fenced ansi block a stray ``` would close the fence, so strip
+    // backticks and newlines from metadata entirely rather than escaping them.
+    const forCodeBlock = (value: string, max: number): string =>
+      truncate(value.replace(/[`\r\n]/g, ' ').trim(), max);
+
     const metadataBlock = [
       '```ansi',
-      `\u001b[1;36m👤 Sender:    \u001b[0;37m${data.name}`,
-      `\u001b[1;36m📧 Email:     \u001b[0;32m${data.email || 'Not provided'}`,
-      `\u001b[1;36m👾 Discord:   \u001b[0;32m${data.discordId || 'Not provided'}`,
-      `\u001b[1;36m✨ Preferred: \u001b[1;35m${data.preferredContact}`,
-      `\u001b[1;36m📝 Subject:   \u001b[0;37m${data.subject || 'No Subject Specified'}`,
+      `\u001b[1;36m👤 Sender:    \u001b[0;37m${forCodeBlock(data.name, 100)}`,
+      `\u001b[1;36m📧 Email:     \u001b[0;32m${forCodeBlock(data.email, 254) || 'Not provided'}`,
+      `\u001b[1;36m👾 Discord:   \u001b[0;32m${forCodeBlock(data.discordId, 100) || 'Not provided'}`,
+      `\u001b[1;36m✨ Preferred: \u001b[1;35m${forCodeBlock(data.preferredContact, 40)}`,
+      `\u001b[1;36m📝 Subject:   \u001b[0;37m${forCodeBlock(data.subject, 200) || 'No Subject Specified'}`,
       '```'
     ].join('\n');
+
+    // Discord rejects an embed description over 4096 characters, which would
+    // fail the whole send. Reserve room for the metadata block and headings.
+    const MAX_DESCRIPTION = 4096;
+    const descriptionPrefix = `### 📋 Metadata\n${metadataBlock}\n### 💬 Message\n>>> `;
+    const messageBudget = Math.max(0, MAX_DESCRIPTION - descriptionPrefix.length - 16);
+    const safeMessage = truncate(escapeMarkdown(data.message), messageBudget);
 
     const embed = new EmbedBuilder()
       .setColor(0xD8B4FE)
       .setTitle('🎀 New Message Received!')
       .setThumbnail('attachment://icon_bow.png')
-      .setDescription(`### 📋 Metadata\n${metadataBlock}\n### 💬 Message\n>>> ${data.message}`)
+      .setDescription(`${descriptionPrefix}${safeMessage}`)
       .setTimestamp()
       .setFooter({ text: 'Cloudy Portfolio Contact Relay', iconURL: 'attachment://icon_bow.png' });
 

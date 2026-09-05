@@ -5,6 +5,48 @@ import { emailService } from '../services/emailService.js';
 import { logger } from '../utils/logger.js';
 import type { RelayMessage } from '../types/index.js';
 
+/**
+ * Per-field limits.
+ *
+ * `express.json({ limit: '10kb' })` bounds the request as a whole, but says
+ * nothing about individual fields — and the two delivery channels have very
+ * different tolerances. Discord rejects an embed description over 4096
+ * characters, so without a cap here an oversized message silently failed the
+ * Discord send while the email succeeded, leaving a partial delivery the sender
+ * was never told about.
+ *
+ * Rejecting up front with a clear message is better than delivering to some
+ * channels and not others.
+ */
+const FIELD_LIMITS = {
+  name: 100,
+  email: 254,          // RFC 5321 maximum address length
+  discordId: 100,
+  preferredContact: 40,
+  subject: 200,
+  message: 3000,       // fits a Discord embed alongside the metadata block
+} as const;
+
+type FieldName = keyof typeof FIELD_LIMITS;
+
+const FIELD_LABELS: Record<FieldName, string> = {
+  name: 'Name',
+  email: 'Email address',
+  discordId: 'Discord ID',
+  preferredContact: 'Preferred contact method',
+  subject: 'Subject',
+  message: 'Message',
+};
+
+function assertWithinLimit(field: FieldName, value: string): void {
+  const max = FIELD_LIMITS[field];
+  if (value.length > max) {
+    throw new ValidationError(
+      `${FIELD_LABELS[field]} is too long (${value.length} characters; the limit is ${max}).`,
+    );
+  }
+}
+
 export async function handleMessageRelay(
   req: Request,
   res: Response,
@@ -41,6 +83,12 @@ export async function handleMessageRelay(
       subject: (subject || '').trim(),
       message: message.trim(),
     };
+
+    // Checked after trimming so trailing whitespace does not push a valid
+    // message over the limit.
+    for (const field of Object.keys(FIELD_LIMITS) as FieldName[]) {
+      assertWithinLimit(field, payload[field]);
+    }
 
     const hasDiscord = discordService.isEnabled();
     const hasEmail = emailService.isEnabled();

@@ -18,21 +18,21 @@ class Logger {
     return `[${this.getTimestamp()}] [${color}${level}${COLOR_RESET}] [${context}] ${message}`;
   }
 
-  public debug(context: string, message: string, ...meta: any[]) {
+  public debug(context: string, message: string, ...meta: unknown[]) {
     if (process.env.NODE_ENV !== 'production' || process.env.DEBUG === 'true') {
       console.log(this.formatMessage('DEBUG', context, message), ...meta);
     }
   }
 
-  public info(context: string, message: string, ...meta: any[]) {
+  public info(context: string, message: string, ...meta: unknown[]) {
     console.log(this.formatMessage('INFO', context, message), ...meta);
   }
 
-  public warn(context: string, message: string, ...meta: any[]) {
+  public warn(context: string, message: string, ...meta: unknown[]) {
     console.warn(this.formatMessage('WARN', context, message), ...meta);
   }
 
-  public error(context: string, message: string, error?: any, ...meta: any[]) {
+  public error(context: string, message: string, error?: unknown, ...meta: unknown[]) {
     console.error(this.formatMessage('ERROR', context, message), ...meta);
     if (error instanceof Error && error.stack) {
       console.error(`\u001b[31m${error.stack}${COLOR_RESET}`);
